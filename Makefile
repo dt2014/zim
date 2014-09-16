@@ -1,6 +1,6 @@
 HDR = util.h datatype.h mesh.h
 
-OBJ = zim.o util.o mesh.o
+OBJ = zim.o util.o datatype.o mesh.o
 
 CC  = gcc -Wall -fopenmp -g -std=c99
 

@@ -21,5 +21,8 @@ typedef struct{
 	Object		*object;
 } Spot;
 
+char getGender(void);
+BOOL canReproduce(Object *obj1, Object *obj2);
+
 #endif	/* DATATYPE_H */
 

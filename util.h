@@ -19,8 +19,10 @@
 #endif
 
 void *allocate(int size);
-void lock(int i, BOOL *locks);
-void unlock(int i, BOOL *locks);
+void lockForMove(int i, BOOL *locks);
+void unlockForMove(int i, BOOL *locks);
+void lockForPair(int i, BOOL *locks);
+void unlockForPair(int i, BOOL *locks);
 
 #endif	/* UTIL_H */
 

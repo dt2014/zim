@@ -41,7 +41,7 @@ Spot **ScanOutOfRange(Spot **Mesh) {
 			Mesh[i][SIZE+1].object = NULL;
 		}
 	}
-	for(int j = 1; j<=SIZE; j++){
+	for(int j = 1; j <= SIZE; j++){
 		if(Mesh[0][j].taken == TRUE) 
 		{
 			Mesh[0][j].taken = FALSE;
@@ -65,6 +65,9 @@ void swap(Spot*** a, Spot*** b){
     *a = *b;  
     *b = tmp;  
 }
+
+
+
 
 
 void printMeshHeading(Spot **Mesh, int t) {

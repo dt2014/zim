@@ -19,7 +19,7 @@ void *allocate(int size) {
 
 
 #if defined(_OPENMP)
-void lock(int i, BOOL *locks) {
+void lockForMove(int i, BOOL *locks) {
 	for (BOOL locked = FALSE; locked == FALSE; /*NOP*/) {
 		#pragma omp critical (LockRegion)
 		{
@@ -30,10 +30,28 @@ void lock(int i, BOOL *locks) {
 		}
 	}
 }
-void unlock(int i, BOOL *locks) {
+void unlockForMove(int i, BOOL *locks) {
 	#pragma omp critical (LockRegion)
 	{
 		locks[i-1] = FALSE; locks[i] = FALSE; locks[i+1] = FALSE;
+	}
+}
+
+void lockForPair(int i, BOOL *locks) {
+	for (BOOL locked = FALSE; locked == FALSE; /*NOP*/) {
+		#pragma omp critical (LockRegion)
+		{
+			locked = !locks[i-1] && !locks[i] && !locks[i+1] && !locks[i+2];
+			if (locked) {
+				locks[i-1] = TRUE; locks[i] = TRUE; locks[i+1] = TRUE; locks[i+2] = TRUE;
+			}
+		}
+	}
+}
+void unlockForPair(int i, BOOL *locks) {
+	#pragma omp critical (LockRegion)
+	{
+		locks[i-1] = FALSE; locks[i] = FALSE; locks[i+1] = FALSE; locks[i+2] = FALSE;
 	}
 }
 #endif
