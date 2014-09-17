@@ -52,22 +52,27 @@ void swap(object*** a, object*** b){
     *b = tmp;  
 }
 
-
-
-
-
-void printMeshHeading(object **Mesh, int t) {
-	int populationTotal = 0;
+void addDemographicNbr(int *demographic, object **Mesh, int t) {
+	int hQty = 0;
+    int zQty = 0;
     #if defined(_OPENMP)
-	#pragma omp parallel for default(none) shared(Mesh) reduction(+:populationTotal)
+	#pragma omp parallel for default(none) shared(Mesh) reduction(+:hQty,zQty)
 	#endif
 	for (int i = 1; i <= SIZE; i++) {
 		for (int j = 1; j <= SIZE; j++) {
-			if (Mesh[i][j] != NULL) populationTotal++;
+			if (Mesh[i][j] != NULL) {
+                switch(Mesh[i][j]->type) {
+                        case 'H': hQty++; break;
+                        default: zQty++;
+                }
+            }
 		} 
 	}
-    printf("%s: %d, population: %d\n", DELTA_T, t, populationTotal);
+    demographic[2*t] = hQty;
+    demographic[2*t+1] = zQty;
+    //printf("%s: %d, Human: %d, Zombie: %d\n", DELTA_T, t, hQty, zQty);
 }
+
 
 void printMesh(object **Mesh) {
 	for (int i = 0; i <= SIZE+1; i++) {
@@ -75,9 +80,9 @@ void printMesh(object **Mesh) {
 		for (int j = 0; j <= SIZE+1; j++) {
 			if (Mesh[i][j] != NULL) {
 				if(Mesh[i][j]->age < 10)
-                    printf("|%c0%d", Mesh[i][j]->gender, Mesh[i][j]->age);
+                    printf("|%c0%d", Mesh[i][j]->type == 'H' ? Mesh[i][j]->gender : 'Z', Mesh[i][j]->age);
 				else
-                    printf("|%c%d", Mesh[i][j]->gender, Mesh[i][j]->age);
+                    printf("|%c%d", Mesh[i][j]->type == 'H' ? Mesh[i][j]->gender : 'Z', Mesh[i][j]->age);
 			}
 			else
                 printf("|   ");

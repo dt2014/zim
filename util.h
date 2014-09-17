@@ -23,6 +23,8 @@ void lockForMove(int i, BOOL *locks);
 void unlockForMove(int i, BOOL *locks);
 void lockForPair(int i, BOOL *locks);
 void unlockForPair(int i, BOOL *locks);
+int *initDemographic();
+void printDemographic(int *demographic);
 
 #endif	/* UTIL_H */
 

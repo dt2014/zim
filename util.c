@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "util.h"
+#include "paras.h"
 
 void *allocate(int size) {
     void *addr;
@@ -56,3 +57,17 @@ void unlockForPair(int i, BOOL *locks) {
 }
 #endif
 
+int *initDemographic() {
+    int *demographic = (int*) allocate(sizeof(int) * (STEPS + 1) * 2);
+    for (int i = 0; i <= STEPS*2 + 1; i++) {
+        demographic[i] = 0;
+    }
+    return demographic;
+}
+
+void printDemographic(int *demographic) {
+    printf("%12s%12s%12s\n", "DAY", "HUMAN", "ZOMBIE");
+    for (int i = 0; i <= STEPS; i++) {
+        printf("%12d%12d%12d\n", i, demographic[2*i], demographic[2*i+1]);
+    }
+}

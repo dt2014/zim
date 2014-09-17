@@ -20,6 +20,8 @@ struct Object{
 
 char setGender(void);
 BOOL canReproduce(object bj1, object obj2);
+BOOL canInfect(object obj1, object obj2);
+void zombiefication(object obj1, object obj2);
 
 #endif	/* DATATYPE_H */
 

@@ -23,3 +23,15 @@ BOOL canReproduce(object obj1, object obj2) {
     else
         return FALSE;
 }
+
+BOOL canInfect(object obj1, object obj2) {
+    if(obj1->type != obj2->type)
+        return TRUE;
+    else
+        return FALSE;
+}
+
+void zombiefication(object obj1, object obj2) {
+    object human = obj1->type == 'H' ? obj1 : obj2;
+    human->type = 'Z';
+}
