@@ -10,58 +10,44 @@
 #include "mesh.h"
 #include "paras.h"
 
-Spot **CreateMesh(int I, int J) {
-    Spot **Mesh = (Spot**) allocate(I * sizeof(Spot*));
+object **CreateMesh(int I, int J) {
+    object **Mesh = (object**) allocate(I * sizeof(object*));
 	for (int i = 0; i < I; i++) {
-			Mesh[i] = (Spot*) allocate(J * sizeof(Spot));
-		for (int j = 0; j < J; j++) 
-			{
-				Mesh[i][j].taken = FALSE;
-				Mesh[i][j].object = NULL;
+			Mesh[i] = (object*) allocate(J * sizeof(object));
+		for (int j = 0; j < J; j++) {
+				Mesh[i][j] = NULL;
 			}
 	}
 	return Mesh;
 }
 
-Spot **ScanOutOfRange(Spot **Mesh) {
-	for(int i = 1; i <= SIZE; i++){
-		if (Mesh[i][0].taken == TRUE) 
-		{
-			Mesh[i][0].taken = FALSE;
-			Mesh[i][1].taken = TRUE;
-			Mesh[i][1].object = Mesh[i][0].object;
-			Mesh[i][0].object = NULL;
+object **ScanOutOfRange(object **Mesh) {
+	for(int i = 1; i <= SIZE; i++) {
+		if (Mesh[i][0] != NULL) {
+			Mesh[i][1] = Mesh[i][0];
+			Mesh[i][0] = NULL;
 			
 		}
-		if (Mesh[i][SIZE+1].taken == TRUE)
-		{
-			Mesh[i][SIZE+1].taken = FALSE;
-			Mesh[i][SIZE].taken = TRUE;
-			Mesh[i][SIZE].object = Mesh[i][SIZE+1].object;
-			Mesh[i][SIZE+1].object = NULL;
+		if (Mesh[i][SIZE+1] != NULL) {
+			Mesh[i][SIZE] = Mesh[i][SIZE+1] ;
+			Mesh[i][SIZE+1] = NULL;
 		}
 	}
 	for(int j = 1; j <= SIZE; j++){
-		if(Mesh[0][j].taken == TRUE) 
-		{
-			Mesh[0][j].taken = FALSE;
-			Mesh[1][j].taken = TRUE;
-			Mesh[1][j].object = Mesh[0][j].object;
-			Mesh[0][j].object = NULL;
+		if(Mesh[0][j] != NULL) {
+			Mesh[1][j] = Mesh[0][j];
+			Mesh[0][j] = NULL;
 		}
-		if(Mesh[SIZE+1][j].taken == TRUE)
-		{
-			Mesh[SIZE+1][j].taken = FALSE;
-			Mesh[SIZE][j].taken = TRUE;
-			Mesh[SIZE][j].object = Mesh[SIZE+1][j].object;
-			Mesh[SIZE+1][j].object = NULL;			
+		if(Mesh[SIZE+1][j] != NULL) {
+			Mesh[SIZE][j] = Mesh[SIZE+1][j];
+			Mesh[SIZE+1][j] = NULL;			
 		}
 	}
 	return Mesh;
 }
 
-void swap(Spot*** a, Spot*** b){
-    Spot **tmp = *a;  
+void swap(object*** a, object*** b){
+    object **tmp = *a;  
     *a = *b;  
     *b = tmp;  
 }
@@ -70,29 +56,28 @@ void swap(Spot*** a, Spot*** b){
 
 
 
-void printMeshHeading(Spot **Mesh, int t) {
+void printMeshHeading(object **Mesh, int t) {
 	int populationTotal = 0;
+    #if defined(_OPENMP)
+	#pragma omp parallel for default(none) shared(Mesh) reduction(+:populationTotal)
+	#endif
 	for (int i = 1; i <= SIZE; i++) {
 		for (int j = 1; j <= SIZE; j++) {
-			if (Mesh[i][j].taken == TRUE) populationTotal++;
+			if (Mesh[i][j] != NULL) populationTotal++;
 		} 
 	}
     printf("%s: %d, population: %d\n", DELTA_T, t, populationTotal);
 }
 
-void printMesh(Spot **Mesh) {
-    /*#if defined(_OPENMP) 
-	#pragma omp parallel for default(none) shared(cout, Mesh)
-    #endif*/
+void printMesh(object **Mesh) {
 	for (int i = 0; i <= SIZE+1; i++) {
         printf("----------------------------------------------------------------------\n");
 		for (int j = 0; j <= SIZE+1; j++) {
-			if (Mesh[i][j].taken == TRUE)
-			{
-				if(Mesh[i][j].object->age < 10)
-                    printf("|%c0%d", Mesh[i][j].object->gender, Mesh[i][j].object->age);
+			if (Mesh[i][j] != NULL) {
+				if(Mesh[i][j]->age < 10)
+                    printf("|%c0%d", Mesh[i][j]->gender, Mesh[i][j]->age);
 				else
-                    printf("|%c%d", Mesh[i][j].object->gender, Mesh[i][j].object->age);
+                    printf("|%c%d", Mesh[i][j]->gender, Mesh[i][j]->age);
 			}
 			else
                 printf("|   ");

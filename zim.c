@@ -23,17 +23,15 @@ int main(int argc, char** argv) {
 	for (int i = 0; i < SIZE + 2; i++)
         locks[i] = FALSE;
     
-	Spot **MeshA = CreateMesh(SIZE + 2, SIZE + 2);
-	Spot **MeshB = CreateMesh (SIZE + 2, SIZE + 2);
+	object **MeshA = CreateMesh(SIZE + 2, SIZE + 2);
+	object **MeshB = CreateMesh (SIZE + 2, SIZE + 2);
 	for (int i = 1; i <= SIZE; i++) {
 		for (int j = 1; j <= SIZE; j++) {
-			if (drand48() < 0.1) 
-			{	
-				MeshA[i][j].taken = TRUE;
-				MeshA[i][j].object = (Object*) allocate(sizeof(Object));
-                MeshA[i][j].object->gender = getGender();				
-				MeshA[i][j].object->age = rand()%99+1;
-				MeshA[i][j].object->type = 'H';
+			if (drand48() < 0.1) {
+				MeshA[i][j] = (object) allocate(sizeof(struct Object));
+                MeshA[i][j]->gender = setGender();				
+				MeshA[i][j]->age = rand()%99+1;
+				MeshA[i][j]->type = 'H';
 			}
 		}
 	}
@@ -43,154 +41,128 @@ int main(int argc, char** argv) {
     
 	for (int n = 0; n < STEPS; n++) {
         
-		#if defined(_OPENMP) 
+        /* 1. MOVE */
+        #if defined(_OPENMP) 
         double startTime = omp_get_wtime();
 		#pragma omp parallel for default(none) shared(MeshA,MeshB,locks,n)
 		#endif
-
-        /* 1. MOVE 
 		for (int i = 1; i <= SIZE; i++) {
-            
 			#if defined(_OPENMP)
 			lockForMove(i, locks);
 			#endif
-
 			for (int j = 1; j <= SIZE; j++) 
-                if (MeshA[i][j].taken == TRUE) { 
-                    MeshA[i][j].taken = FALSE;
-                    Object *temp = MeshA[i][j].object;
-                    MeshA[i][j].object = NULL;
+                if (MeshA[i][j] != NULL) {
                     double move = drand48();
-                    if (move < 1.0*MOVE && MeshA[i-1][j].taken == FALSE && MeshB[i-1][j].taken == FALSE) {
-                        MeshB[i-1][j].taken = TRUE;
-                        MeshB[i-1][j].object = temp;
-                    } else if (move < 2.0*MOVE && MeshA[i+1][j].taken == FALSE && MeshB[i+1][j].taken == FALSE) {
-                        MeshB[i+1][j].taken = TRUE;
-                        MeshB[i+1][j].object = temp;
-                    } else if (move < 3.0*MOVE && MeshA[i][j-1].taken == FALSE && MeshB[i][j-1].taken == FALSE) {
-                        MeshB[i][j-1].taken = TRUE;
-                        MeshB[i][j-1].object = temp;
-                    } else if (move < 4.0*MOVE && MeshA[i][j+1].taken == FALSE && MeshB[i][j+1].taken == FALSE) {
-                        MeshB[i][j+1].taken = TRUE;
-                        MeshB[i][j+1].object = temp;
+                    if (move < 1.0*MOVE && MeshA[i-1][j] == NULL && MeshB[i-1][j] == NULL) {
+                        MeshB[i-1][j] = MeshA[i][j];
+                    } else if (move < 2.0*MOVE && MeshA[i+1][j] == NULL && MeshB[i+1][j] == NULL) {
+                        MeshB[i+1][j] = MeshA[i][j];
+                    } else if (move < 3.0*MOVE && MeshA[i][j-1] == NULL && MeshB[i][j-1] == NULL) {
+                        MeshB[i][j-1] = MeshA[i][j];
+                    } else if (move < 4.0*MOVE && MeshA[i][j+1] == NULL && MeshB[i][j+1] == NULL) {
+                        MeshB[i][j+1] = MeshA[i][j];
                     } else {
-                        MeshB[i][j].taken = TRUE;
-                        MeshB[i][j].object = temp;
+                        MeshB[i][j] = MeshA[i][j];
                     }
+                    MeshA[i][j] = NULL;
                 } 
-            
 			#if defined(_OPENMP)
 			unlockForMove(i, locks);
 			#endif
-
-		}*/
-        
-        /* 2. BOUNDARY CHECK 
+		}
+        /* 2. BOUNDARY CHECK AFTER MOVE */
 		MeshB = ScanOutOfRange(MeshB);
-        swap(&MeshA, &MeshB);*/
+        swap(&MeshA, &MeshB);
         
         /* 3. DEATH */
+        #if defined(_OPENMP)
+		#pragma omp parallel for default(none) shared(MeshA,MeshB,n)
+		#endif
         for (int i = 1; i <= SIZE; i++) {
 			for (int j = 1; j <= SIZE; j++) 
-                if (MeshA[i][j].taken == TRUE) { 
-                    MeshA[i][j].taken = FALSE;
-                    Object *temp = MeshA[i][j].object;
-                    MeshA[i][j].object = NULL;
+                if (MeshA[i][j] != NULL) { 
                     double death = drand48();
                     if (death > DEATH) {
-                        MeshB[i][j].taken = TRUE;
-                        MeshB[i][j].object = temp;
+                        MeshB[i][j] = MeshA[i][j];
                     } else {
-                        free(temp);
+                        free(MeshA[i][j]);
                     }
+                    MeshA[i][j] = NULL;
                 }
 		}
         swap(&MeshA, &MeshB);
         
         /* 4. BIRTH */
+        #if defined(_OPENMP)
+		#pragma omp parallel for default(none) shared(MeshA,MeshB,locks,n)
+		#endif
 		for (int i = 1; i < SIZE; i++) {
             #if defined(_OPENMP)
 			lockForPair(i, locks);
 			#endif
 			for (int j = 1; j < SIZE; j++) 
-                if (MeshA[i][j].taken == TRUE) {                    
+                if (MeshA[i][j] != NULL) {                    
                     double birth = drand48();
-                    if (birth < BIRTH && MeshA[i+1][j].taken == TRUE && canReproduce(MeshA[i][j].object, MeshA[i+1][j].object)) {
-                        MeshB[i+1][j].taken = TRUE;
-                        MeshB[i+1][j].object = MeshA[i+1][j].object;
-                        MeshA[i+1][j].taken = FALSE;
-                        MeshA[i+1][j].object = NULL;
+                    if (birth < BIRTH && MeshA[i+1][j] != NULL && canReproduce(MeshA[i][j], MeshA[i+1][j])) {
+                        MeshB[i+1][j] = MeshA[i+1][j];
+                        MeshA[i+1][j] = NULL;
                         
-                        Object *baby = (Object*) allocate(sizeof(Object));
-                        baby->gender = getGender();
+                        object baby = (object) allocate(sizeof(struct Object));
+                        baby->gender = setGender();
                         baby->age = 0;
                         baby->type = 'H';
                         
-                        if (i != 1 && MeshA[i-1][j].taken == FALSE && MeshB[i-1][j].taken == FALSE) {
-                            MeshB[i-1][j].taken = TRUE;
-                            MeshB[i-1][j].object = baby;
-                        } else if (j != 1 && MeshA[i][j-1].taken == FALSE && MeshB[i][j-1].taken == FALSE) {
-                            MeshB[i][j-1].taken = TRUE;
-                            MeshB[i][j-1].object = baby;
-                        } else if (j != 1 && MeshA[i+1][j-1].taken == FALSE && MeshB[i+1][j-1].taken == FALSE) {
-                            MeshB[i+1][j-1].taken = TRUE;
-                            MeshB[i+1][j-1].object = baby;
-                        } else if (MeshA[i][j+1].taken == FALSE && MeshB[i][j+1].taken == FALSE) {
-                            MeshB[i][j+1].taken = TRUE;
-                            MeshB[i][j+1].object = baby;
-                        } else if (MeshA[i+1][j+1].taken == FALSE && MeshB[i+1][j+1].taken == FALSE) {
-                            MeshB[i+1][j+1].taken = TRUE;
-                            MeshB[i+1][j+1].object = baby;
-                        } else if (i+1 != SIZE && MeshA[i+2][j].taken == FALSE && MeshB[i+2][j].taken == FALSE) {
-                            MeshB[i+2][j].taken = TRUE;
-                            MeshB[i+2][j].object = baby;
+                        if (MeshA[i-1][j] == NULL && MeshB[i-1][j] == NULL) {
+                            MeshB[i-1][j] = baby;
+                        } else if (MeshA[i][j-1] == NULL && MeshB[i][j-1] == NULL) {
+                            MeshB[i][j-1] = baby;
+                        } else if (MeshA[i+1][j-1] == NULL && MeshB[i+1][j-1] == NULL) {
+                            MeshB[i+1][j-1] = baby;
+                        } else if (MeshA[i][j+1] == NULL && MeshB[i][j+1] == NULL) {
+                            MeshB[i][j+1] = baby;
+                        } else if (MeshA[i+1][j+1] == NULL && MeshB[i+1][j+1] == NULL) {
+                            MeshB[i+1][j+1] = baby;
+                        } else if (MeshA[i+2][j] == NULL && MeshB[i+2][j] == NULL) {
+                            MeshB[i+2][j] = baby;
                         } else { // no empty spot for a baby
                             free(baby);
                         }
                         
-                    } else if (birth < BIRTH && MeshA[i][j+1].taken == TRUE && canReproduce(MeshA[i][j].object, MeshA[i][j+1].object)) {
-                        MeshB[i][j+1].taken = TRUE;
-                        MeshB[i][j+1].object = MeshA[i][j+1].object;
-                        MeshA[i][j+1].taken = FALSE;
-                        MeshA[i][j+1].object = NULL;
+                    } else if (birth < BIRTH && MeshA[i][j+1] != NULL && canReproduce(MeshA[i][j], MeshA[i][j+1])) {
+                        MeshB[i][j+1] = MeshA[i][j+1];
+                        MeshA[i][j+1] = NULL;
                         
-                        Object *baby = (Object*) allocate(sizeof(Object));
-                        baby->gender = getGender();
+                        object baby = (object) allocate(sizeof(struct Object));
+                        baby->gender = setGender();
                         baby->age = 0;
                         baby->type = 'H';
                         
-                        if (j != 1 && MeshA[i][j-1].taken == FALSE && MeshB[i][j-1].taken == FALSE) {
-                            MeshB[i][j-1].taken = TRUE;
-                            MeshB[i][j-1].object = baby;
-                        } else if (i != 1 && MeshA[i-1][j].taken == FALSE && MeshB[i-1][j].taken == FALSE) {
-                            MeshB[i-1][j].taken = TRUE;
-                            MeshB[i-1][j].object = baby;
-                        } else if (i != 1 && MeshA[i-1][j+1].taken == FALSE && MeshB[i-1][j+1].taken == FALSE) {
-                            MeshB[i-1][j+1].taken = TRUE;
-                            MeshB[i-1][j+1].object = baby;
-                        } else if (MeshA[i+1][j].taken == FALSE && MeshB[i+1][j].taken == FALSE) {
-                            MeshB[i+1][j].taken = TRUE;
-                            MeshB[i+1][j].object = baby;
-                        } else if (MeshA[i+1][j+1].taken == FALSE && MeshB[i+1][j+1].taken == FALSE) {
-                            MeshB[i+1][j+1].taken = TRUE;
-                            MeshB[i+1][j+1].object = baby;
-                        } else if (j+1 != SIZE && MeshA[i][j+2].taken == FALSE && MeshB[i][j+2].taken == FALSE) {
-                            MeshB[i][j+2].taken = TRUE;
-                            MeshB[i][j+2].object = baby;
+                        if (MeshA[i][j-1] == NULL && MeshB[i][j-1] == NULL) {
+                            MeshB[i][j-1] = baby;
+                        } else if (MeshA[i-1][j] == NULL && MeshB[i-1][j] == NULL) {
+                            MeshB[i-1][j] = baby;
+                        } else if (MeshA[i-1][j+1] == NULL && MeshB[i-1][j+1] == NULL) {
+                            MeshB[i-1][j+1] = baby;
+                        } else if (MeshA[i+1][j] == NULL && MeshB[i+1][j] == NULL) {
+                            MeshB[i+1][j] = baby;
+                        } else if (MeshA[i+1][j+1] == NULL && MeshB[i+1][j+1] == NULL) {
+                            MeshB[i+1][j+1] = baby;
+                        } else if (MeshA[i][j+2] == NULL && MeshB[i][j+2] == NULL) {
+                            MeshB[i][j+2] = baby;
                         } else { // no empty spot for a baby
                             free(baby);
                         }
                     }
-                    MeshB[i][j].taken = TRUE;
-                    MeshB[i][j].object = MeshA[i][j].object;
-                    MeshA[i][j].taken = FALSE;
-                    MeshA[i][j].object = NULL;
+                    MeshB[i][j] = MeshA[i][j];
+                    MeshA[i][j] = NULL;
                 }
             #if defined(_OPENMP)
 			unlockForPair(i, locks);
 			#endif
 		}
 		swap(&MeshA, &MeshB);
+        
+        
         
         
 		printMeshHeading(MeshA, n + 1);

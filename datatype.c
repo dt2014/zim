@@ -10,14 +10,14 @@
 #include "util.h"
 #include "datatype.h"
 
-char getGender(void) {
+char setGender(void) {
     if(rand()%10 >= 5)
         return 'F';
     else
         return 'M';
 }
 
-BOOL canReproduce(Object *obj1, Object *obj2) {
+BOOL canReproduce(object obj1, object obj2) {
     if(obj1->type == 'H' && obj2->type == 'H' && obj1->gender != obj2->gender)
         return TRUE;
     else

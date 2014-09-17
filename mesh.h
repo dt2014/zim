@@ -10,12 +10,12 @@
 
 #include "datatype.h"
 
-Spot **CreateMesh(int I, int J);
-Spot **ScanOutOfRange(Spot **Mesh);
-void swap(Spot*** a, Spot*** b);
+object **CreateMesh(int I, int J);
+object **ScanOutOfRange(object **Mesh);
+void swap(object*** a, object*** b);
 
-void printMeshHeading(Spot **Mesh, int t);
-void printMesh(Spot **Mesh);
+void printMeshHeading(object **Mesh, int t);
+void printMesh(object **Mesh);
 
 #endif	/* MESH_H */
 

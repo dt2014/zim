@@ -10,19 +10,16 @@
 
 #include "util.h"
 
-typedef struct {
+typedef struct Object *object;
+
+struct Object{
 	int age;	
 	char gender; //M/F
 	char type;//zombie or human Z/H 
-} Object;
+};
 
-typedef struct{
-	BOOL 		taken;
-	Object		*object;
-} Spot;
-
-char getGender(void);
-BOOL canReproduce(Object *obj1, Object *obj2);
+char setGender(void);
+BOOL canReproduce(object bj1, object obj2);
 
 #endif	/* DATATYPE_H */
 
