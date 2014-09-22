@@ -1,8 +1,9 @@
 /* 
  * File:   zim.c
- * Author: 
- *
- * Created on September 10, 2014, 9:38 PM
+ * Students : 
+ * Fengmin Deng     (dengf, 659332)
+ * Jiajie Li        (jiajiel, 631482)
+ * Shuangchao Yin   (shuangchaoy, 612511) 
  */
 
 #include <stdio.h>
@@ -31,9 +32,6 @@ int main(int argc, char** argv) {
 	object **MeshB = CreateMesh (SIZE + 2, SIZE + 2);
     
     // put human into mesh
-    #if defined(_OPENMP)
-	#pragma omp parallel for default(none) shared(MeshA) //num_threads(t)
-	#endif
 	for (int i = 1; i <= SIZE; i++) {
 		for (int j = 1; j <= SIZE; j++) {
 			if (drand48() < POP_DENSITY) {
@@ -185,8 +183,9 @@ int main(int argc, char** argv) {
 		swap(&MeshA, &MeshB);
         
         /* 5. ZOMBIEFICATION */
+        double updatedProbOfInfect = n < 365 ? INFECT_EARLY / (1 + log(1 + n)) : INFECT_LATER / (1 + log(1 + n));
         #if defined(_OPENMP)
-		#pragma omp parallel for default(none) shared(MeshA,MeshB,locks,n) //num_threads(t)
+		#pragma omp parallel for default(none) shared(MeshA,MeshB,locks,n,updatedProbOfInfect) //num_threads(t)
 		#endif
 		for (int i = 1; i < SIZE; i++) {
             #if defined(_OPENMP)
@@ -195,7 +194,7 @@ int main(int argc, char** argv) {
 			for (int j = 1; j < SIZE; j++) 
                 if (MeshA[i][j] != NULL) {                    
                     double infect = drand48();
-                    double updatedProbOfInfect = n < 365 ? INFECT_EARLY / (1 + log(1 + n)) : INFECT_LATER / (1 + log(1 + n));
+                    
                     if ((infect < updatedProbOfInfect) && MeshA[i+1][j] != NULL && canInfect(MeshA[i][j], MeshA[i+1][j])) { 
                         zombiefication(MeshA[i][j], MeshA[i+1][j]);
                         MeshB[i+1][j] = MeshA[i+1][j];

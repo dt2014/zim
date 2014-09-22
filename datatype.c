@@ -1,8 +1,9 @@
 /* 
  * File:   datatype.c
- * Author: 
- *
- * Created on September 16, 2014, 09:53 pM
+ * Students : 
+ * Fengmin Deng     (dengf, 659332)
+ * Jiajie Li        (jiajiel, 631482)
+ * Shuangchao Yin   (shuangchaoy, 612511) 
  */
 
 #include <stdio.h>

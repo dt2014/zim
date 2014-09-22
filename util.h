@@ -1,8 +1,9 @@
 /* 
  * File:   util.h
- * Author: 
- *
- * Created on September 15, 2014, 12:10 AM
+ * Students : 
+ * Fengmin Deng     (dengf, 659332)
+ * Jiajie Li        (jiajiel, 631482)
+ * Shuangchao Yin   (shuangchaoy, 612511) 
  */
 
 #ifndef UTIL_H

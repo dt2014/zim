@@ -28,24 +28,16 @@ int main(int argc, char** argv) {
     
     #if defined(_OPENMP) 
     MaxThreads = omp_get_max_threads();
-    
 	#endif
-
     
     for (int t = 1; t <= MaxThreads; t *= 2) {
     #if defined(_OPENMP)
     double startTime = omp_get_wtime();
-    omp_set_num_threads(t);
     #endif
+
 	BOOL *locks = createLocks();
-    
-    #if defined(_OPENMP)
-    omp_set_num_threads(t);
-    #endif
+
 	object **MeshA = CreateMesh(SIZE + 2, SIZE + 2);
-    #if defined(_OPENMP)
-    omp_set_num_threads(t);
-    #endif
 	object **MeshB = CreateMesh (SIZE + 2, SIZE + 2);
     
     // put human into mesh
@@ -74,11 +66,11 @@ int main(int argc, char** argv) {
         MeshA[cell_i][cell_j] = zombie;
     }
     
-    //int *demographic = initDemographic();
-    //addDemographicNbr(demographic, MeshA, 0);
-	//printMesh(MeshA);
-    
-    
+    int *demographic = initDemographic();
+    #if defined(_OPENMP) 
+    omp_set_num_threads(t);
+	#endif
+    addDemographicNbr(demographic, MeshA, 0);
     
 	for (int n = 0; n < STEPS; n++) {
         
@@ -111,9 +103,6 @@ int main(int argc, char** argv) {
 			#endif
 		}
         /* 2. BOUNDARY CHECK AFTER MOVE */
-        #if defined(_OPENMP)
-        omp_set_num_threads(t);
-        #endif
 		MeshB = ScanOutOfRange(MeshB);
         swap(&MeshA, &MeshB);
         
@@ -206,8 +195,9 @@ int main(int argc, char** argv) {
 		swap(&MeshA, &MeshB);
         
         /* 5. ZOMBIEFICATION */
+        double updatedProbOfInfect = n < 365 ? INFECT_EARLY : INFECT_LATER;
         #if defined(_OPENMP)
-		#pragma omp parallel for default(none) shared(MeshA,MeshB,locks,n) num_threads(t)
+		#pragma omp parallel for default(none) shared(MeshA,MeshB,locks,n, updatedProbOfInfect) num_threads(t)
 		#endif
 		for (int i = 1; i < SIZE; i++) {
             #if defined(_OPENMP)
@@ -216,7 +206,6 @@ int main(int argc, char** argv) {
 			for (int j = 1; j < SIZE; j++) 
                 if (MeshA[i][j] != NULL) {                    
                     double infect = drand48();
-                    double updatedProbOfInfect = n < 365 ? INFECT_EARLY : INFECT_LATER;
                     if ((infect < updatedProbOfInfect) && MeshA[i+1][j] != NULL && canInfect(MeshA[i][j], MeshA[i+1][j])) { 
                         zombiefication(MeshA[i][j], MeshA[i+1][j]);
                         MeshB[i+1][j] = MeshA[i+1][j];
@@ -235,7 +224,10 @@ int main(int argc, char** argv) {
 		}
 		swap(&MeshA, &MeshB);
         
-        //addDemographicNbr(demographic, MeshA, n+1);
+        #if defined(_OPENMP) 
+        omp_set_num_threads(t);
+        #endif
+        addDemographicNbr(demographic, MeshA, n+1);
 	}
     
     //printDemographic(demographic);

@@ -1,8 +1,9 @@
 /* 
  * File:   util.c
- * Author: 
- *
- * Created on September 15, 2014, 12:10 AM
+ * Students : 
+ * Fengmin Deng     (dengf, 659332)
+ * Jiajie Li        (jiajiel, 631482)
+ * Shuangchao Yin   (shuangchaoy, 612511) 
  */
 
 #include <stdio.h>
@@ -21,9 +22,6 @@ void *allocate(int size) {
 
 BOOL *createLocks() {
     BOOL *locks = (BOOL*) allocate((SIZE + 2) * sizeof(BOOL*));
-    #if defined(_OPENMP)
-	#pragma omp parallel for default(none) shared(locks)
-	#endif
 	for (int i = 0; i < SIZE + 2; i++)
         locks[i] = FALSE;
     return locks;
@@ -71,9 +69,6 @@ int *initDemographic() {
     int curvesQty = 3; // one for female, one for male and last for zombie
     int demographicSize = (STEPS + 1) * curvesQty;
     int *demographic = (int*) allocate(sizeof(int) * (STEPS + 1) * curvesQty);
-    #if defined(_OPENMP)
-	#pragma omp parallel for default(none) shared(demographic, demographicSize)
-	#endif
     for (int i = 0; i <= demographicSize; i++) {
         demographic[i] = 0;
     }

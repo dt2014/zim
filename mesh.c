@@ -1,8 +1,9 @@
 /* 
  * File:   mesh.c
- * Author: 
- *
- * Created on September 15, 2014, 12:52 AM
+ * Students : 
+ * Fengmin Deng     (dengf, 659332)
+ * Jiajie Li        (jiajiel, 631482)
+ * Shuangchao Yin   (shuangchaoy, 612511) 
  */
 
 #include <stdio.h>
@@ -12,9 +13,6 @@
 
 object **CreateMesh(int I, int J) {
     object **Mesh = (object**) allocate(I * sizeof(object*));
-    #if defined(_OPENMP)
-	#pragma omp parallel for default(none) shared(Mesh, I, J)
-	#endif
 	for (int i = 0; i < I; i++) {
 			Mesh[i] = (object*) allocate(J * sizeof(object));
 		for (int j = 0; j < J; j++) {
@@ -25,9 +23,6 @@ object **CreateMesh(int I, int J) {
 }
 
 object **ScanOutOfRange(object **Mesh) {
-    #if defined(_OPENMP)
-	#pragma omp parallel for default(none) shared(Mesh)
-	#endif
 	for(int i = 1; i <= SIZE; i++) {
 		if (Mesh[i][0] != NULL) {
 			Mesh[i][1] = Mesh[i][0];

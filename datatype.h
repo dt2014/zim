@@ -1,8 +1,9 @@
 /* 
  * File:   datatype.h
- * Author: 
- *
- * Created on September 15, 2014, 12:33 AM
+ * Students : 
+ * Fengmin Deng     (dengf, 659332)
+ * Jiajie Li        (jiajiel, 631482)
+ * Shuangchao Yin   (shuangchaoy, 612511) 
  */
 
 #ifndef DATATYPE_H
