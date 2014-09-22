@@ -12,6 +12,9 @@
 
 object **CreateMesh(int I, int J) {
     object **Mesh = (object**) allocate(I * sizeof(object*));
+    #if defined(_OPENMP)
+	#pragma omp parallel for default(none) shared(Mesh, I, J)
+	#endif
 	for (int i = 0; i < I; i++) {
 			Mesh[i] = (object*) allocate(J * sizeof(object));
 		for (int j = 0; j < J; j++) {
@@ -22,6 +25,9 @@ object **CreateMesh(int I, int J) {
 }
 
 object **ScanOutOfRange(object **Mesh) {
+    #if defined(_OPENMP)
+	#pragma omp parallel for default(none) shared(Mesh)
+	#endif
 	for(int i = 1; i <= SIZE; i++) {
 		if (Mesh[i][0] != NULL) {
 			Mesh[i][1] = Mesh[i][0];
@@ -53,24 +59,28 @@ void swap(object*** a, object*** b){
 }
 
 void addDemographicNbr(int *demographic, object **Mesh, int t) {
-	int hQty = 0;
+	int fQty = 0;
+    int mQty = 0;
     int zQty = 0;
     #if defined(_OPENMP)
-	#pragma omp parallel for default(none) shared(Mesh) reduction(+:hQty,zQty)
+	#pragma omp parallel for default(none) shared(Mesh) reduction(+:fQty, mQty,zQty)
 	#endif
 	for (int i = 1; i <= SIZE; i++) {
 		for (int j = 1; j <= SIZE; j++) {
 			if (Mesh[i][j] != NULL) {
-                switch(Mesh[i][j]->type) {
-                        case 'H': hQty++; break;
-                        default: zQty++;
+                if (Mesh[i][j]->type == 'Z') {
+                    zQty++;
+                } else if (Mesh[i][j]->gender == 'F') {
+                    fQty++;
+                } else {
+                    mQty++;
                 }
             }
 		} 
 	}
-    demographic[2*t] = hQty;
-    demographic[2*t+1] = zQty;
-    //printf("%s: %d, Human: %d, Zombie: %d\n", DELTA_T, t, hQty, zQty);
+    demographic[3*t] = fQty;
+    demographic[3*t+1] = mQty;
+    demographic[3*t+2] = zQty;
 }
 
 

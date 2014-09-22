@@ -1,14 +1,16 @@
 /* 
- * File:   zim.c
- * Author: 
- *
- * Created on September 10, 2014, 9:38 PM
+ * File:   zimScale.c
+ * This main file is for testing the strong scaling.
+ * 
+ * Students : 
+ * Fengmin Deng     (dengf, 659332)
+ * Jiajie Li        (jiajiel, 631482)
+ * Shuangchao Yin   (shuangchaoy, 612511) 
  */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <omp.h>
-#include <math.h>
 #include "mesh.h"
 #include "paras.h"
 
@@ -19,20 +21,36 @@ void srand48(long int seedval);
  * 
  */
 int main(int argc, char** argv) {
-    #if defined(_OPENMP) 
-    double startTime = omp_get_wtime();
-	#endif
-
+    
     srand48(8767134);
     
+    int MaxThreads = 2;
+    
+    #if defined(_OPENMP) 
+    MaxThreads = omp_get_max_threads();
+    
+	#endif
+
+    
+    for (int t = 1; t <= MaxThreads; t *= 2) {
+    #if defined(_OPENMP)
+    double startTime = omp_get_wtime();
+    omp_set_num_threads(t);
+    #endif
 	BOOL *locks = createLocks();
     
+    #if defined(_OPENMP)
+    omp_set_num_threads(t);
+    #endif
 	object **MeshA = CreateMesh(SIZE + 2, SIZE + 2);
+    #if defined(_OPENMP)
+    omp_set_num_threads(t);
+    #endif
 	object **MeshB = CreateMesh (SIZE + 2, SIZE + 2);
     
     // put human into mesh
     #if defined(_OPENMP)
-	#pragma omp parallel for default(none) shared(MeshA) //num_threads(t)
+	#pragma omp parallel for default(none) shared(MeshA) num_threads(t)
 	#endif
 	for (int i = 1; i <= SIZE; i++) {
 		for (int j = 1; j <= SIZE; j++) {
@@ -56,17 +74,17 @@ int main(int argc, char** argv) {
         MeshA[cell_i][cell_j] = zombie;
     }
     
-    int *demographic = initDemographic();
-    addDemographicNbr(demographic, MeshA, 0);
+    //int *demographic = initDemographic();
+    //addDemographicNbr(demographic, MeshA, 0);
 	//printMesh(MeshA);
     
-    //for (int t = 1; t <= 2; t++) {
+    
     
 	for (int n = 0; n < STEPS; n++) {
         
         /* 1. MOVE */
         #if defined(_OPENMP)
-		#pragma omp parallel for default(none) shared(MeshA,MeshB,locks,n) //num_threads(t)
+		#pragma omp parallel for default(none) shared(MeshA,MeshB,locks,n) num_threads(t)
 		#endif
 		for (int i = 1; i <= SIZE; i++) {
 			#if defined(_OPENMP)
@@ -93,12 +111,15 @@ int main(int argc, char** argv) {
 			#endif
 		}
         /* 2. BOUNDARY CHECK AFTER MOVE */
+        #if defined(_OPENMP)
+        omp_set_num_threads(t);
+        #endif
 		MeshB = ScanOutOfRange(MeshB);
         swap(&MeshA, &MeshB);
         
         /* 3. DEATH */
         #if defined(_OPENMP)
-		#pragma omp parallel for default(none) shared(MeshA,MeshB,n) //num_threads(t)
+		#pragma omp parallel for default(none) shared(MeshA,MeshB,n) num_threads(t)
 		#endif
         for (int i = 1; i <= SIZE; i++) {
 			for (int j = 1; j <= SIZE; j++) 
@@ -116,7 +137,7 @@ int main(int argc, char** argv) {
         
         /* 4. BIRTH */
         #if defined(_OPENMP)
-		#pragma omp parallel for default(none) shared(MeshA,MeshB,locks,n) //num_threads(t)
+		#pragma omp parallel for default(none) shared(MeshA,MeshB,locks,n) num_threads(t)
 		#endif
 		for (int i = 1; i < SIZE; i++) {
             #if defined(_OPENMP)
@@ -186,7 +207,7 @@ int main(int argc, char** argv) {
         
         /* 5. ZOMBIEFICATION */
         #if defined(_OPENMP)
-		#pragma omp parallel for default(none) shared(MeshA,MeshB,locks,n) //num_threads(t)
+		#pragma omp parallel for default(none) shared(MeshA,MeshB,locks,n) num_threads(t)
 		#endif
 		for (int i = 1; i < SIZE; i++) {
             #if defined(_OPENMP)
@@ -195,7 +216,7 @@ int main(int argc, char** argv) {
 			for (int j = 1; j < SIZE; j++) 
                 if (MeshA[i][j] != NULL) {                    
                     double infect = drand48();
-                    double updatedProbOfInfect = n < 365 ? INFECT_EARLY / (1 + log(1 + n)) : INFECT_LATER / (1 + log(1 + n));
+                    double updatedProbOfInfect = n < 365 ? INFECT_EARLY : INFECT_LATER;
                     if ((infect < updatedProbOfInfect) && MeshA[i+1][j] != NULL && canInfect(MeshA[i][j], MeshA[i+1][j])) { 
                         zombiefication(MeshA[i][j], MeshA[i+1][j]);
                         MeshB[i+1][j] = MeshA[i+1][j];
@@ -214,14 +235,13 @@ int main(int argc, char** argv) {
 		}
 		swap(&MeshA, &MeshB);
         
-        addDemographicNbr(demographic, MeshA, n+1);
+        //addDemographicNbr(demographic, MeshA, n+1);
 	}
-    //printMesh(MeshA);
-    printDemographic(demographic);
+    
+    //printDemographic(demographic);
     #if defined(_OPENMP)
-    printf("Max_threads: %d, time: %f\n\n", omp_get_max_threads(), omp_get_wtime() - startTime);
-    //printf("WorkingThreads: %d, Max_threads: %d, time: %f\n\n", t, omp_get_max_threads(), omp_get_wtime() - startTime);
+    printf("WorkingThreads: %d, Max_threads: %d, time: %f\n", t, MaxThreads, omp_get_wtime() - startTime);
 	#endif
-    //}
+    }
     return 0;
 }

@@ -19,6 +19,7 @@
 #endif
 
 void *allocate(int size);
+BOOL *createLocks();
 void lockForMove(int i, BOOL *locks);
 void unlockForMove(int i, BOOL *locks);
 void lockForPair(int i, BOOL *locks);

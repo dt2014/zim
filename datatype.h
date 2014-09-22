@@ -19,7 +19,9 @@ struct Object{
 };
 
 char setGender(void);
+BOOL canAlive(object obj, double probToDie);
 BOOL canReproduce(object bj1, object obj2);
+char setBabyGender(void);
 BOOL canInfect(object obj1, object obj2);
 void zombiefication(object obj1, object obj2);
 
