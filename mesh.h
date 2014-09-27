@@ -11,11 +11,12 @@
 
 #include "datatype.h"
 
-object **CreateMesh(int I, int J);
-object **ScanOutOfRange(object **Mesh);
-void swap(object*** a, object*** b);
-void addDemographicNbr(int *demographic, object **Mesh, int t);
-void printMesh(object **Mesh);
+object  **CreateMesh(int I, int J);
+void    putHumanOnMesh(object **Mesh, PRNGState *states);
+void    ScanOutOfRange(object **Mesh);
+void    swap(object*** a, object*** b);
+void    addDemographicNbr(int *demographic, object **Mesh, int t);
+void    printMesh(object **Mesh);
 
 #endif	/* MESH_H */
 

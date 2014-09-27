@@ -24,5 +24,6 @@
 #define INFECT_EARLY    0.7// probability of zombiefication in the first year
 #define INFECT_LATER    0.0001// probability of zombiefication afterwards
 
-#endif	/* PARAS_H */
+#define DMGP_CURVES     3 // number of curves of demographics
 
+#endif	/* PARAS_H */

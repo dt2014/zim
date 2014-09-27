@@ -8,8 +8,11 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <omp.h>
 #include "mesh.h"
 #include "paras.h"
+
+double  erand48(unsigned short xsubi[3]);
 
 object **CreateMesh(int I, int J) {
     object **Mesh = (object**) allocate(I * sizeof(object*));
@@ -22,7 +25,24 @@ object **CreateMesh(int I, int J) {
 	return Mesh;
 }
 
-object **ScanOutOfRange(object **Mesh) {
+void putHumanOnMesh(object **Mesh, PRNGState *states) {
+    #pragma omp parallel for default(none) shared(Mesh, states)
+	for (int i = 1; i <= SIZE; i++) {
+		for (int j = 1; j <= SIZE; j++) {
+			if (erand48(states[omp_get_thread_num()]) < POP_DENSITY) {
+				Mesh[i][j] = (object) allocate(sizeof(struct Object));
+                Mesh[i][j]->gender = 
+                        setGender(erand48(states[omp_get_thread_num()]));				
+				Mesh[i][j]->age =
+                        (int) (erand48(states[omp_get_thread_num()]) * 100);
+				Mesh[i][j]->type = 'H';
+			}
+		}
+	}
+}
+
+void ScanOutOfRange(object **Mesh) {
+    #pragma omp for
 	for(int i = 1; i <= SIZE; i++) {
 		if (Mesh[i][0] != NULL) {
 			Mesh[i][1] = Mesh[i][0];
@@ -34,6 +54,7 @@ object **ScanOutOfRange(object **Mesh) {
 			Mesh[i][SIZE+1] = NULL;
 		}
 	}
+    #pragma omp for
 	for(int j = 1; j <= SIZE; j++){
 		if(Mesh[0][j] != NULL) {
 			Mesh[1][j] = Mesh[0][j];
@@ -44,7 +65,6 @@ object **ScanOutOfRange(object **Mesh) {
 			Mesh[SIZE+1][j] = NULL;			
 		}
 	}
-	return Mesh;
 }
 
 void swap(object*** a, object*** b){
@@ -57,9 +77,7 @@ void addDemographicNbr(int *demographic, object **Mesh, int t) {
 	int fQty = 0;
     int mQty = 0;
     int zQty = 0;
-    #if defined(_OPENMP)
-	#pragma omp parallel for default(none) shared(Mesh) reduction(+:fQty, mQty,zQty)
-	#endif
+	//#pragma omp parallel for default(none) shared(Mesh) reduction(+:fQty,mQty,zQty)
 	for (int i = 1; i <= SIZE; i++) {
 		for (int j = 1; j <= SIZE; j++) {
 			if (Mesh[i][j] != NULL) {

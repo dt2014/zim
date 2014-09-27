@@ -19,10 +19,10 @@ struct Object{
 	char type;//zombie or human Z/H 
 };
 
-char setGender(void);
+char setGender(double randomNumber);
 BOOL canAlive(object obj, double probToDie);
 BOOL canReproduce(object bj1, object obj2);
-char setBabyGender(void);
+char setBabyGender(double randomNumber);
 BOOL canInfect(object obj1, object obj2);
 void zombiefication(object obj1, object obj2);
 

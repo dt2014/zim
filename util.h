@@ -19,14 +19,17 @@
 #define BOOL    char
 #endif
 
-void *allocate(int size);
-BOOL *createLocks();
-void lockForMove(int i, BOOL *locks);
-void unlockForMove(int i, BOOL *locks);
-void lockForPair(int i, BOOL *locks);
-void unlockForPair(int i, BOOL *locks);
-int *initDemographic();
-void printDemographic(int *demographic);
+typedef unsigned short PRNGState[3];
+
+void        *allocate(int size);
+PRNGState   *initPRNGStates(int max_threads);
+BOOL        *initLocks();
+void        lockForMove(int i, BOOL *locks);
+void        unlockForMove(int i, BOOL *locks);
+void        lockForPair(int i, BOOL *locks);
+void        unlockForPair(int i, BOOL *locks);
+int         *initDemographic();
+void        printDemographic(int *demographic);
 
 #endif	/* UTIL_H */
 

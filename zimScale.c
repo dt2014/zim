@@ -14,51 +14,50 @@
 #include "mesh.h"
 #include "paras.h"
 
-double drand48(void);
-void srand48(long int seedval);
+int max_threads = 1;
+
+void    srand48(long int seedval);
+double  drand48(void);
+double  erand48(unsigned short xsubi[3]);
 
 /*
  * 
  */
 int main(int argc, char** argv) {
-    
+    #if defined(_OPENMP)
+    max_threads = omp_get_max_threads();
+	#endif
+
     srand48(8767134);
     
-    int MaxThreads = 2;
-    
-    #if defined(_OPENMP) 
-    MaxThreads = omp_get_max_threads();
-	#endif
-    
-    for (int t = 1; t <= MaxThreads; t *= 2) {
+    for (int t = 1; t <= max_threads; t++) {
     #if defined(_OPENMP)
     double startTime = omp_get_wtime();
     #endif
 
-	BOOL *locks = createLocks();
-
+    PRNGState *states = initPRNGStates(max_threads);
+	BOOL *locks = initLocks();
 	object **MeshA = CreateMesh(SIZE + 2, SIZE + 2);
 	object **MeshB = CreateMesh (SIZE + 2, SIZE + 2);
-    
-    // put human into mesh
-    #if defined(_OPENMP)
-	#pragma omp parallel for default(none) shared(MeshA) num_threads(t)
-	#endif
+ 
+    // put human on mesh
+	#pragma omp parallel for default(none) shared(MeshA, states) num_threads(t)
 	for (int i = 1; i <= SIZE; i++) {
 		for (int j = 1; j <= SIZE; j++) {
-			if (drand48() < POP_DENSITY) {
+			if (erand48(states[omp_get_thread_num()]) < POP_DENSITY) {
 				MeshA[i][j] = (object) allocate(sizeof(struct Object));
-                MeshA[i][j]->gender = setGender();				
+                MeshA[i][j]->gender = 
+                        setGender(erand48(states[omp_get_thread_num()]));		
 				MeshA[i][j]->age = rand()%99+1;
 				MeshA[i][j]->type = 'H';
 			}
 		}
 	}
     
-    // put zombies into mesh
+    // put zombies on mesh
     for (int i = 0; i < INIT_Z_QTY; i++ ) {
         object zombie = (object) allocate(sizeof(struct Object));
-        zombie->gender = setGender();				
+        zombie->gender = setGender(erand48(states[omp_get_thread_num()]));				
 		zombie->age = rand()%99+1;
 		zombie->type = 'Z';
         int cell_i = (int) (drand48() * SIZE);
@@ -73,18 +72,18 @@ int main(int argc, char** argv) {
     addDemographicNbr(demographic, MeshA, 0);
     
 	for (int n = 0; n < STEPS; n++) {
-        
+        #pragma omp parallel default(none) \
+                shared(MeshA, MeshB, locks, n, states) num_threads(t)
+        { // start of parallel region within time loop
         /* 1. MOVE */
-        #if defined(_OPENMP)
-		#pragma omp parallel for default(none) shared(MeshA,MeshB,locks,n) num_threads(t)
-		#endif
+        #pragma omp for
 		for (int i = 1; i <= SIZE; i++) {
 			#if defined(_OPENMP)
 			lockForMove(i, locks);
 			#endif
 			for (int j = 1; j <= SIZE; j++) 
                 if (MeshA[i][j] != NULL) {
-                    double move = drand48();
+                    double move = erand48(states[omp_get_thread_num()]);
                     if (move < 1.0*MOVE && MeshA[i-1][j] == NULL && MeshB[i-1][j] == NULL) {
                         MeshB[i-1][j] = MeshA[i][j];
                     } else if (move < 2.0*MOVE && MeshA[i+1][j] == NULL && MeshB[i+1][j] == NULL) {
@@ -103,17 +102,16 @@ int main(int argc, char** argv) {
 			#endif
 		}
         /* 2. BOUNDARY CHECK AFTER MOVE */
-		MeshB = ScanOutOfRange(MeshB);
+        ScanOutOfRange(MeshB);
+        #pragma omp single
         swap(&MeshA, &MeshB);
         
         /* 3. DEATH */
-        #if defined(_OPENMP)
-		#pragma omp parallel for default(none) shared(MeshA,MeshB,n) num_threads(t)
-		#endif
+		#pragma omp for
         for (int i = 1; i <= SIZE; i++) {
 			for (int j = 1; j <= SIZE; j++) 
                 if (MeshA[i][j] != NULL) { 
-                    double death = drand48();
+                    double death = erand48(states[omp_get_thread_num()]);
                     if (canAlive(MeshA[i][j], death)) {
                         MeshB[i][j] = MeshA[i][j];
                     } else {
@@ -122,25 +120,25 @@ int main(int argc, char** argv) {
                     MeshA[i][j] = NULL;
                 }
 		}
+        #pragma omp single
         swap(&MeshA, &MeshB);
         
         /* 4. BIRTH */
-        #if defined(_OPENMP)
-		#pragma omp parallel for default(none) shared(MeshA,MeshB,locks,n) num_threads(t)
-		#endif
+		#pragma omp for
 		for (int i = 1; i < SIZE; i++) {
             #if defined(_OPENMP)
 			lockForPair(i, locks);
 			#endif
 			for (int j = 1; j < SIZE; j++) 
                 if (MeshA[i][j] != NULL) {
-                    double birth = drand48();
-                    if (birth < BIRTH && MeshA[i+1][j] != NULL && canReproduce(MeshA[i][j], MeshA[i+1][j])) {
+                    double birth = erand48(states[omp_get_thread_num()]);
+                    if (birth < BIRTH && MeshA[i+1][j] != NULL && 
+                            canReproduce(MeshA[i][j], MeshA[i+1][j])) {
                         MeshB[i+1][j] = MeshA[i+1][j];
                         MeshA[i+1][j] = NULL;
                         
                         object baby = (object) allocate(sizeof(struct Object));
-                        baby->gender = setBabyGender();
+                        baby->gender = setBabyGender(erand48(states[omp_get_thread_num()]));
                         baby->age = 0;
                         baby->type = 'H';
                         
@@ -160,12 +158,13 @@ int main(int argc, char** argv) {
                             free(baby);
                         }
                         
-                    } else if (birth < BIRTH && MeshA[i][j+1] != NULL && canReproduce(MeshA[i][j], MeshA[i][j+1])) {
+                    } else if (birth < BIRTH && MeshA[i][j+1] != NULL && 
+                            canReproduce(MeshA[i][j], MeshA[i][j+1])) {
                         MeshB[i][j+1] = MeshA[i][j+1];
                         MeshA[i][j+1] = NULL;
                         
                         object baby = (object) allocate(sizeof(struct Object));
-                        baby->gender = setBabyGender();
+                        baby->gender = setBabyGender(erand48(states[omp_get_thread_num()]));
                         baby->age = 0;
                         baby->type = 'H';
                         
@@ -192,20 +191,19 @@ int main(int argc, char** argv) {
 			unlockForPair(i, locks);
 			#endif
 		}
+        #pragma omp single
 		swap(&MeshA, &MeshB);
         
         /* 5. ZOMBIEFICATION */
         double updatedProbOfInfect = n < 365 ? INFECT_EARLY : INFECT_LATER;
-        #if defined(_OPENMP)
-		#pragma omp parallel for default(none) shared(MeshA,MeshB,locks,n, updatedProbOfInfect) num_threads(t)
-		#endif
+		#pragma omp for
 		for (int i = 1; i < SIZE; i++) {
             #if defined(_OPENMP)
 			lockForPair(i, locks);
 			#endif
 			for (int j = 1; j < SIZE; j++) 
                 if (MeshA[i][j] != NULL) {                    
-                    double infect = drand48();
+                    double infect = erand48(states[omp_get_thread_num()]);
                     if ((infect < updatedProbOfInfect) && MeshA[i+1][j] != NULL && canInfect(MeshA[i][j], MeshA[i+1][j])) { 
                         zombiefication(MeshA[i][j], MeshA[i+1][j]);
                         MeshB[i+1][j] = MeshA[i+1][j];
@@ -222,17 +220,17 @@ int main(int argc, char** argv) {
 			unlockForPair(i, locks);
 			#endif
 		}
+        #pragma omp single
 		swap(&MeshA, &MeshB);
-        
+        } // bracket for the parallel region within time loop
         #if defined(_OPENMP) 
         omp_set_num_threads(t);
         #endif
         addDemographicNbr(demographic, MeshA, n+1);
 	}
-    
     //printDemographic(demographic);
     #if defined(_OPENMP)
-    printf("WorkingThreads: %d, Max_threads: %d, time: %f\n", t, MaxThreads, omp_get_wtime() - startTime);
+    printf("WorkingThreads: %d, Max_threads: %d, time: %f\n", t, max_threads, omp_get_wtime() - startTime);
 	#endif
     }
     return 0;

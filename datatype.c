@@ -12,10 +12,9 @@
 #include "paras.h"
 #include "datatype.h"
 
-double drand48(void);
 
-char setGender(void) {
-    if(drand48() <= PROB_M)
+char setGender(double randomNumber) {
+    if(randomNumber < PROB_M)
         return 'M';
     else
         return 'F';
@@ -34,8 +33,8 @@ BOOL canReproduce(object obj1, object obj2) {
         return FALSE;
 }
 
-char setBabyGender(void) {
-    if(drand48() <= BORN_M)
+char setBabyGender(double randomNumber) {
+    if(randomNumber < BORN_M)
         return 'M';
     else
         return 'F';
