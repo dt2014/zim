@@ -11,20 +11,21 @@
 
 #include "util.h"
 
-typedef struct Object *object;
-
-struct Object{
-	int age;	
-	char gender; //M/F
-	char type;//zombie or human Z/H 
-};
+typedef struct{
+    char type;   /* 'H' for human, 'Z' for zombie, 0 for empty cell */
+    char gender; /* 'M' for male, 'F' for female */
+	char age;	 /* from 0 to 100 */
+	char pace;   /* not used yet */
+} object;
 
 char setGender(double randomNumber);
+BOOL isOccupied(object obj);
+BOOL isHuman(object obj);
+BOOL isZombie(object obj);
 BOOL canAlive(object obj, double probToDie);
 BOOL canReproduce(object bj1, object obj2);
 char setBabyGender(double randomNumber);
 BOOL canInfect(object obj1, object obj2);
-void zombiefication(object obj1, object obj2);
 
 #endif	/* DATATYPE_H */
 

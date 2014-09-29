@@ -11,12 +11,17 @@
 
 #include "datatype.h"
 
-object  **CreateMesh(int I, int J);
-void    putHumanOnMesh(object **Mesh, PRNGState *states);
-void    ScanOutOfRange(object **Mesh);
-void    swap(object*** a, object*** b);
-void    addDemographicNbr(int *demographic, object **Mesh, int t);
-void    printMesh(object **Mesh);
+void initMesh();
+void putHumanOnMesh();
+void putZombieOnMesh();
+void removeFromMeshAToMeshB(int Ai, int Aj, int Bi, int Bj);
+void moveObject(double move, int i, int j);
+void ScanOutOfRange();
+void swap(object (**MeshA)[], object (**MeshB)[]);
+void tryToReproduce(int i, int j);
+void tryToInfect(int i, int j);
+void addDemographicNbr(int t);
+void printMesh(int day);
 
 #endif	/* MESH_H */
 

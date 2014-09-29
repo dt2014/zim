@@ -8,9 +8,12 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-//#include <Python.h>
+#include <math.h>
 #include "util.h"
 #include "paras.h"
+
+PRNGState states[BGQ_THEADS];
+BOOL      locks[SIZE+2];
 
 double drand48(void);
 
@@ -22,25 +25,19 @@ void *allocate(int size) {
     return addr;
 }
 
-PRNGState *initPRNGStates(int max_threads){
-    PRNGState *states = (PRNGState*) allocate(sizeof(PRNGState) * max_threads);
-    for(int i = 0; i < max_threads; i++) {
+void initPRNGStates() {
+    for(int i = 0; i < BGQ_THEADS; i++) {
         states[i][0] = (unsigned short) (0xFFFF*drand48());
         states[i][1] = (unsigned short) (0xFFFF*drand48());
         states[i][2] = (unsigned short) (0xFFFF*drand48());
     }
-    return states;
 }
 
-BOOL *initLocks() {
-    BOOL *locks = (BOOL*) allocate((SIZE + 2) * sizeof(BOOL*));
-	for (int i = 0; i < SIZE + 2; i++)
-        locks[i] = FALSE;
-    return locks;
+void initLocks() {
+	for (int i = 0; i < SIZE+2; i++) locks[i] = FALSE;
 }
 
-#if defined(_OPENMP)
-void lockForMove(int i, BOOL *locks) {
+void lockForMove(int i) {
 	for (BOOL locked = FALSE; locked == FALSE; /*NOP*/) {
 		#pragma omp critical (LockRegion)
 		{
@@ -53,7 +50,7 @@ void lockForMove(int i, BOOL *locks) {
 		}
 	}
 }
-void unlockForMove(int i, BOOL *locks) {
+void unlockForMove(int i) {
 	#pragma omp critical (LockRegion)
 	{
 		locks[i-1] = FALSE;
@@ -62,7 +59,7 @@ void unlockForMove(int i, BOOL *locks) {
 	}
 }
 
-void lockForPair(int i, BOOL *locks) {
+void lockForPair(int i) {
 	for (BOOL locked = FALSE; locked == FALSE; /*NOP*/) {
 		#pragma omp critical (LockRegion)
 		{
@@ -76,7 +73,7 @@ void lockForPair(int i, BOOL *locks) {
 		}
 	}
 }
-void unlockForPair(int i, BOOL *locks) {
+void unlockForPair(int i) {
 	#pragma omp critical (LockRegion)
 	{
 		locks[i-1] = FALSE;
@@ -85,41 +82,25 @@ void unlockForPair(int i, BOOL *locks) {
         locks[i+2] = FALSE;
 	}
 }
-#endif
 
-int *initDemographic() {
-    int demographicSize = (STEPS + 1) * DMGP_CURVES;
-    int *demographics = (int*) allocate(demographicSize * sizeof(int));
-    for (int i = 0; i < demographicSize; i++) {
-        demographics[i] = 0;
-    }
-    return demographics;
+double updateInfectRate(int day) {
+    double newInfectRate = INFECT;
+        if(day > 1095) { // more than 3 years
+            newInfectRate = INFECT / day;
+        } else if (day > 730) { // less than 3 years but more than 2
+            newInfectRate = INFECT * log(day) / day ;
+        } else if (day > 365) { // less than 2 years but more than 1
+             newInfectRate = INFECT / log(day);
+        }
+    return newInfectRate;
 }
 
-/*
-void plotDemographic(char *figuresFile, char *plotTitle, char *pngName) {
-    char *argv[4];
-    argv[0] = "plotDemographic.py";
-    argv[1] = figuresFile;
-    argv[2] = plotTitle;
-    argv[3] = pngName;
-    FILE *pyScript = fopen("plotDemographic.py", "r");
-    Py_Initialize();
-    PySys_SetArgv(4, argv);
-    if(PyRun_SimpleFile(pyScript, "plotDemographic.py") != 0) {
-        fclose(pyScript);
-        sprintf(stderr, "PyRun_SimpleFile(%s) failed!", "plotDemographic.py");
-    }
-    fclose(pyScript);
-    Py_Finalize();
-}*/
-
-void printDemographic(int *demographic) {
+void printDemographic(int *demographics) {
     char *fileName = (char*) allocate(sizeof(char) * 90);
     char *figuresFileName = (char*) allocate(sizeof(char) * 100);
     char *plotFileName = (char*) allocate(sizeof(char) * 100);
-    sprintf(fileName, "%s%d-%.5f-zd%.5f-infLOG%.2fToLOG%.4f", 
-            DELTA_T, STEPS, BIRTH, DEATH_Z, INFECT_EARLY, INFECT_LATER);
+    sprintf(fileName, "%s%d-mz%.2f-zd%.5f-inf%.1f_ChangingIn3Years", 
+            DELTA_T, STEPS, MOVE_Z, DEATH_Z, INFECT);
     sprintf(figuresFileName, "%s.txt", fileName);
     sprintf(plotFileName, "%s.png", fileName);
     
@@ -127,15 +108,13 @@ void printDemographic(int *demographic) {
     fprintf(plotFigures, "%s,%s,%s,%s\n", "DAY", "FEMALE", "MALE", "ZOMBIE");
     for (int i = 0; i <= STEPS; i++) {
         fprintf(plotFigures, "%d,%d,%d,%d\n", 
-                i, demographic[3*i], demographic[3*i+1], demographic[3*i+2]);
+                i, demographics[3*i], demographics[3*i+1], demographics[3*i+2]);
     }
     fclose(plotFigures);
-    
-//plotDemographic(figuresFileName, "Demographic Human & Zombie", plotFileName);
+
     char *pyCall = (char*) allocate(sizeof(char) * 200);
-    char *plotTitil = "Demographics Zombie Infection Model";
+    char *plotTitil = "Chart1. Demographics Zombie Infection Model";
     sprintf(pyCall, "%s %s %s '%s' %s", "python", "plotDemographic.py", 
             figuresFileName, plotTitil, plotFileName);
     system(pyCall);
 }
-

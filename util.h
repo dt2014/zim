@@ -21,15 +21,15 @@
 
 typedef unsigned short PRNGState[3];
 
-void        *allocate(int size);
-PRNGState   *initPRNGStates(int max_threads);
-BOOL        *initLocks();
-void        lockForMove(int i, BOOL *locks);
-void        unlockForMove(int i, BOOL *locks);
-void        lockForPair(int i, BOOL *locks);
-void        unlockForPair(int i, BOOL *locks);
-int         *initDemographic();
-void        printDemographic(int *demographic);
+void    *allocate(int size);
+void    initPRNGStates();
+void    initLocks();
+void    lockForMove(int i);
+void    unlockForMove(int i);
+void    lockForPair(int i);
+void    unlockForPair(int i);
+double  updateInfectRate(int day);
+void    printDemographic(int *demographics);
 
 #endif	/* UTIL_H */
 
