@@ -13,7 +13,7 @@
 #include "paras.h"
 
 PRNGState states[BGQ_THEADS];
-BOOL      locks[SIZE+2];
+BOOL      locks[SIZEI+2];
 
 double drand48(void);
 
@@ -34,7 +34,7 @@ void initPRNGStates() {
 }
 
 void initLocks() {
-	for (int i = 0; i < SIZE+2; i++) locks[i] = FALSE;
+	for (int i = 0; i < SIZEI+2; i++) locks[i] = FALSE;
 }
 
 void lockForMove(int i) {
@@ -88,9 +88,9 @@ double updateInfectRate(int day) {
         if(day > 1095) { // more than 3 years
             newInfectRate = INFECT / day;
         } else if (day > 730) { // less than 3 years but more than 2
-            newInfectRate = INFECT * log(day) / day ;
+            newInfectRate = INFECT * (3650-day) /3650 ;
         } else if (day > 365) { // less than 2 years but more than 1
-             newInfectRate = INFECT / log(day);
+             newInfectRate = INFECT;
         }
     return newInfectRate;
 }

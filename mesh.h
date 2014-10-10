@@ -10,7 +10,6 @@
 #define	MESH_H
 
 #include "datatype.h"
-
 void initMesh();
 void putHumanOnMesh();
 void putZombieOnMesh();

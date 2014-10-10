@@ -1,0 +1,15 @@
+#!/bin/bash
+# Created by the VLSCI job script generator
+# Wed Oct 08 2014 20:29:23 GMT+1100 (澳大利亚东部夏令时)
+
+# The name of the job:
+#SBATCH --job-name="Good _Job"
+
+# Number of BlueGene compute nodes used by the job (multiply by 16 to get CPU cores):
+#SBATCH --nodes=1
+
+# The maximum running time of the job in days-hours:mins
+#SBATCH --time=0-1:0
+
+# The job command(s):
+srun --ntasks-per-node=1 ./zim

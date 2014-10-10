@@ -9,15 +9,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <omp.h>
+#include <mpi.h>
 #include "mesh.h"
 #include "paras.h"
 
 extern PRNGState states[BGQ_THEADS];
 
-object MESH_A[SIZE+2][SIZE+2];
-object MESH_B[SIZE+2][SIZE+2];
-object (*MeshA)[SIZE+2] = MESH_A;
-object (*MeshB)[SIZE+2] = MESH_B;
+object MESH_A[SIZEI+2][SIZEJ+2];
+object MESH_B[SIZEI+2][SIZEJ+2];
+object (*MeshA)[SIZEJ+2] = MESH_A;
+object (*MeshB)[SIZEJ+2] = MESH_B;
 int    demographics[DMGP_CURVES*(STEPS+1)];
 
 double  erand48(unsigned short xsubi[3]);
@@ -25,8 +26,8 @@ double  drand48(void);
 
 void initMesh() {
     #pragma omp parallel for default(none) shared(MeshA, MeshB)
-	for (int i = 0; i < SIZE+2; i++) {
-		for (int j = 0; j < SIZE+2; j++) {
+	for (int i = 0; i < SIZEI+2; i++) {
+		for (int j = 0; j < SIZEJ+2; j++) {
             MeshA[i][j].type = 0;
             MeshA[i][j].gender = 0;
             MeshA[i][j].age = 0;
@@ -39,8 +40,8 @@ void initMesh() {
 
 void putHumanOnMesh() {
     #pragma omp parallel for default(none) shared(MeshA, states)
-	for (int i = 1; i <= SIZE; i++) {
-		for (int j = 1; j <= SIZE; j++) {
+	for (int i = 1; i <= SIZEI; i++) {
+		for (int j = 1; j <= SIZEJ; j++) {
 			if (erand48(states[omp_get_thread_num()]) < POP_DENSITY) {
 				MeshA[i][j].type = 'H';
                 MeshA[i][j].gender = 
@@ -54,8 +55,8 @@ void putHumanOnMesh() {
 
 void putZombieOnMesh() {
     for (int i = 0; i < INIT_Z_QTY; i++ ) {
-        int cell_i = (int) (drand48() * SIZE);
-        int cell_j = (int) (drand48() * SIZE);
+        int cell_i = (int) (drand48() * SIZEI);
+        int cell_j = (int) (drand48() * SIZEJ);
         MeshA[cell_i][cell_j].type = 'Z';
         MeshA[cell_i][cell_j].gender = setGender(drand48());
         MeshA[cell_i][cell_j].age = (char) (drand48() * 100);
@@ -102,21 +103,21 @@ void moveInMeshB(int oldi, int oldj, int newi, int newj) {
     MeshB[oldi][oldj].type = 0;
 }
 
-void ScanOutOfRange() {
-    #pragma omp for
-	for(int i = 1; i <= SIZE; i++) {
-		if (isOccupied(MeshB[i][0])) moveInMeshB(i, 0, i, 1);
-		if (isOccupied(MeshB[i][SIZE+1])) moveInMeshB(i, SIZE+1, i, SIZE);
+void ScanOutOfRange(int rank) {
+    
+	for(int i = 1; i <= SIZEI; i++) {
+		if (rank == 1&&isOccupied(MeshB[i][0])) moveInMeshB(i, 0, i, 1);
+		if (rank == 0&&isOccupied(MeshB[i][SIZEJ+1])) moveInMeshB(i, SIZEJ+1, i, SIZEJ);
 	}
-    #pragma omp for
-	for(int j = 1; j <= SIZE; j++) {
+    
+	for(int j = 1; j <= SIZEJ; j++) {
 		if(isOccupied(MeshB[0][j])) moveInMeshB(0, j, 1, j);
-		if(isOccupied(MeshB[SIZE+1][j])) moveInMeshB(SIZE+1, j, SIZE, j);
+		if(isOccupied(MeshB[SIZEI+1][j])) moveInMeshB(SIZEI+1, j, SIZEI, j);
 	}
 }
 
 void swap(object (**MeshA)[], object (**MeshB)[]){
-    object (*tmp)[SIZE+2] = *MeshA;  
+    object (*tmp)[SIZEJ+2] = *MeshA;  
     *MeshA = *MeshB;  
     *MeshB = tmp;  
 }
@@ -188,8 +189,8 @@ void addDemographicNbr(int t) {
     int zQty = 0;
 	#pragma omp parallel for default(none) shared(MeshA) \
             reduction(+:fQty,mQty,zQty)
-	for (int i = 1; i <= SIZE; i++) {
-		for (int j = 1; j <= SIZE; j++) {
+	for (int i = 1; i <= SIZEI; i++) {
+		for (int j = 1; j <= SIZEJ; j++) {
 			if (isOccupied(MeshA[i][j])) {
                 if (MeshA[i][j].type == 'Z') zQty++;
                 else if (MeshA[i][j].gender == 'F') fQty++;
@@ -205,10 +206,10 @@ void addDemographicNbr(int t) {
 void printMesh(int day) {
     FILE *printmesh = fopen("printmesh.txt", "a+");
     fprintf(printmesh, "Day %d:\n", day);
-	for (int i = 0; i <= SIZE+1; i++) {
-        for (int j = 0; j <= SIZE+1; j++) fprintf(printmesh, "----");
+	for (int i = 0; i <= SIZEI+1; i++) {
+        for (int j = 0; j <= SIZEJ+1; j++) fprintf(printmesh, "----");
         fprintf(printmesh, "\n");
-		for (int j = 0; j <= SIZE+1; j++) {
+		for (int j = 0; j <= SIZEJ+1; j++) {
 			if (isOccupied(MeshA[i][j])) {
 				if(MeshA[i][j].age < 10)
                     fprintf(printmesh, "|%c0%d", MeshA[i][j].type == 'H' ? 
@@ -222,7 +223,7 @@ void printMesh(int day) {
 		}
 		fprintf(printmesh, "|\n");
 	}
-    for (int i = 0; i <= SIZE+1; i++) fprintf(printmesh, "----");
+    for (int i = 0; i <= SIZEI+1; i++) fprintf(printmesh, "----");
 	fprintf(printmesh, "\n\n");
     fclose(printmesh);
 }

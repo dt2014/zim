@@ -11,7 +11,8 @@
 
 #define DELTA_T         "day"
 #define STEPS           3650
-#define SIZE            500
+#define SIZEI           1024
+#define SIZEJ			768
 #define POP_DENSITY     0.2
 #define PROB_M          0.4978 // probability that a human is a male
 #define MOVE_H          0.1    // probability that a human moves

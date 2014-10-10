@@ -13,9 +13,9 @@
 #include "paras.h"
 
 extern PRNGState states[BGQ_THEADS];
-extern BOOL      locks[SIZE + 2];
-extern object    (*MeshA)[SIZE+2];
-extern object    (*MeshB)[SIZE+2];
+extern BOOL      locks[SIZEI + 2];
+extern object    (*MeshA)[SIZEJ+2];
+extern object    (*MeshB)[SIZEJ+2];
 extern int       demographics[DMGP_CURVES*(STEPS+1)];
 
 int     max_threads     = 1;
@@ -52,9 +52,9 @@ int main(int argc, char** argv) {
             
         /* 1. MOVE */
         #pragma omp for
-		for (int i = 1; i <= SIZE; i++) {
+		for (int i = 1; i <= SIZEI; i++) {
 			lockForMove(i);
-			for (int j = 1; j <= SIZE; j++) 
+			for (int j = 1; j <= SIZEJ; j++) 
                 if (isOccupied(MeshA[i][j])) {
                     double move = erand48(states[omp_get_thread_num()]);
                     moveObject(move, i, j);
@@ -67,8 +67,8 @@ int main(int argc, char** argv) {
         swap(&MeshA, &MeshB);
         /* 3. DEATH */
         #pragma omp for
-        for (int i = 1; i <= SIZE; i++) {
-			for (int j = 1; j <= SIZE; j++) {
+        for (int i = 1; i <= SIZEI; i++) {
+			for (int j = 1; j <= SIZEJ; j++) {
                 if (isOccupied(MeshA[i][j])) { 
                     double death = erand48(states[omp_get_thread_num()]);
                     if (canAlive(MeshA[i][j], death)) {
@@ -84,9 +84,9 @@ int main(int argc, char** argv) {
         
         /* 4. BIRTH */
         #pragma omp for
-		for (int i = 1; i < SIZE; i++) {
+		for (int i = 1; i < SIZEI; i++) {
 			lockForPair(i);
-			for (int j = 1; j < SIZE; j++) {
+			for (int j = 1; j < SIZEJ; j++) {
                 if (isOccupied(MeshA[i][j])) {
                     double birth = erand48(states[omp_get_thread_num()]);
                     if (birth < BIRTH) {
@@ -104,9 +104,9 @@ int main(int argc, char** argv) {
         /* 5. ZOMBIEFICATION */
         double updatedINFECT = n < 365 ? INFECT : 0.001;
         #pragma omp for
-		for (int i = 1; i < SIZE; i++) {
+		for (int i = 1; i < SIZEI; i++) {
 			lockForPair(i);
-			for (int j = 1; j < SIZE; j++) 
+			for (int j = 1; j < SIZEJ; j++) 
                 if (isOccupied(MeshA[i][j])) {                    
                     double infect = erand48(states[omp_get_thread_num()]);
                     if (infect < updatedINFECT) {

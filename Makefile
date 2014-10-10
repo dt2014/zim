@@ -1,6 +1,6 @@
-HDR = util.h datatype.h mesh.h
+HDR = util.h datatype.h mesh.h 
 
-OBJ = zim.o util.o datatype.o mesh.o
+OBJ = zim.o util.o datatype.o mesh.o  
 
 CC  = mpicc -Wall -fopenmp -g -std=c99 -lm
 

@@ -8,7 +8,8 @@
 
 #ifndef DATATYPE_H
 #define	DATATYPE_H
-
+#include <stdio.h>
+#include <mpi.h>
 #include "util.h"
 
 typedef struct{
@@ -18,6 +19,8 @@ typedef struct{
 	char pace;   /* not used yet */
 } object;
 
+	
+	
 char setGender(double randomNumber);
 BOOL isOccupied(object obj);
 BOOL isHuman(object obj);
