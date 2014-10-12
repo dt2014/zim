@@ -12,7 +12,7 @@
 #include <mpi.h>
 #include "mesh.h"
 #include "paras.h"
-#define TAG 1
+#include "MPI_Activity.h"
 
 extern PRNGState states[BGQ_THEADS];
 extern BOOL      locks[SIZEI + 2];
@@ -26,8 +26,7 @@ long    seed            = 8767134;
 void    srand48(long int seedval);
 double  drand48(void);
 double  erand48(unsigned short xsubi[3]);
-void exchangeBoundryCondition(int rank,object (*mesh)[SIZEJ+2],MPI_Datatype cellDatatype);
-void transferBoundry(int rank,object (*mesh)[SIZEJ+2],MPI_Datatype cellDatatype);
+
 
 
 int main(int argc, char** argv) {
@@ -58,8 +57,6 @@ int main(int argc, char** argv) {
     
 
 
-	exchangeBoundryCondition(rank,MeshA,cellDatatype);
-	
 	for (int n = 0; n < STEPS; n++) {
 
 		/* exchange the boundry condition between two MPI node */
@@ -83,10 +80,10 @@ int main(int argc, char** argv) {
 			
         /* 2. BOUNDARY CHECK AFTER MOVE */
 		ScanOutOfRange(rank);
-       		
+       	
 		/* transfer the object that moved to the ghost cell */	
 		transferBoundry(rank,MeshB,cellDatatype);
-		
+			
   	    swap(&MeshA, &MeshB);
         /* 3. DEATH */
 		 #pragma omp parallel default(none) \
@@ -173,7 +170,19 @@ int main(int argc, char** argv) {
         //printMesh(n);
 	}
     //printMesh(STEPS);
-    printDemographic(demographics);
+    if(rank == 0)
+	{
+		MPI_Send(&demographics, DMGP_CURVES*(STEPS+1), MPI_INT, 1, TAG, MPI_COMM_WORLD);
+	}
+	if(rank == 1)
+	{
+		int demographicsOfRank1[DMGP_CURVES*(STEPS+1)];
+		MPI_Status status;
+		MPI_Recv(&demographicsOfRank1, DMGP_CURVES*(STEPS+1), MPI_INT, 0, TAG, MPI_COMM_WORLD, &status);
+		for(int i = 0; i<DMGP_CURVES*(STEPS+1);i++)
+			demographics[i] = demographics[i] + demographicsOfRank1[i];
+		printDemographic(demographics);
+	}
     printf("Max_threads: %d, time: %f\n\n", max_threads, omp_get_wtime() - startTime);
 	MPI_Finalize();
 	return 0;
@@ -181,111 +190,5 @@ int main(int argc, char** argv) {
 
 
 
-void exchangeBoundryCondition(int rank,object (*mesh)[SIZEJ+2],MPI_Datatype cellDatatype)
-{
-	object temp[1026];
-	MPI_Status status;
-	if(rank == 0) //rank 0 sent first and receive latter
-	{
-		for(int i =0; i<1026; i++) //prepare for the line to sent
-		{
-			temp[i].type = mesh[i][1].type;
-			temp[i].gender = mesh[i][1].gender;
-			temp[i].age = mesh[i][1].age;
-		}
-		MPI_Send(&temp, 1026, cellDatatype, 1, TAG, MPI_COMM_WORLD);
-		
-		MPI_Recv(&temp, 1026, cellDatatype, 1, TAG, MPI_COMM_WORLD, &status);
-		for(int i =0; i < 1026; i++)
-		{
-			mesh[i][0].type = temp[i].type;
-			mesh[i][0].gender = temp[i].gender;
-			mesh[i][0].age = temp[i].age;
-		}
-	}
-	if(rank == 1) //rank 1 receive first and send latter
-	{
-		MPI_Recv(&temp, 1026, cellDatatype, 0, TAG, MPI_COMM_WORLD, &status);
-		for(int i =0; i < 1026; i++)
-		{
-			mesh[i][SIZEJ+1].type = temp[i].type;
-			mesh[i][SIZEJ+1].gender = temp[i].gender;
-			mesh[i][SIZEJ+1].age = temp[i].age;
-		}
-		
-		for(int i =0; i<1026; i++) //prepare for the line to sent
-		{
-			temp[i].type = mesh[i][SIZEJ].type;
-			temp[i].gender = mesh[i][SIZEJ].gender;
-			temp[i].age = mesh[i][SIZEJ].age;
-		}
-		MPI_Send(&temp, 1026, cellDatatype, 0, TAG, MPI_COMM_WORLD);
-	}
-}
-
-void transferBoundry(int rank,object (*mesh)[SIZEJ+2],MPI_Datatype cellDatatype)
-{
-	object temp[1026];
-	MPI_Status status;
-	if(rank == 0)
-	{   
-		//get the ghost cell
-		for(int i =0; i<1026; i++)  
-		{
-			temp[i].type = mesh[i][0].type;
-			temp[i].gender = mesh[i][0].gender;
-			temp[i].age = mesh[i][0].age;
-		}
-		//send the ghost cell to rank 1 
-		MPI_Send(&temp, 1026, cellDatatype, 1, TAG, MPI_COMM_WORLD);
-		
-		//receive the ghost from rank 1
-		MPI_Recv(&temp, 1026, cellDatatype, 1, TAG, MPI_COMM_WORLD, &status);
-		//put the received ghost cell into row 1
-		for(int i =0; i < 1026; i++)
-		{
-			if(!isOccupied(mesh[i][1])) //by doing this, some object will disappear 
-			{
-				mesh[i][1].type = temp[i].type;
-				mesh[i][1].gender = temp[i].gender;
-				mesh[i][1].age = temp[i].age;
-			}
-		}
-		
-		//clear out ghost cell
-		for(int i = 0;i<1026;i++)
-			mesh[i][0].type = 0;
-	}
-	if(rank == 1)
-	{
-		//receive the ghost cell pass from rank 0
-		MPI_Recv(&temp, 1026, cellDatatype, 0, TAG, MPI_COMM_WORLD, &status);
-		//put the received ghost cell into row SIZEJ 
-		for(int i =0; i < 1026; i++)
-		{
-			if(!isOccupied(mesh[i][SIZEJ])) //by doing this, some object will disappear 
-			{
-				mesh[i][SIZEJ].type = temp[i].type;
-				mesh[i][SIZEJ].gender = temp[i].gender;
-				mesh[i][SIZEJ].age = temp[i].age;
-			}
-		}
-		
-		//get the ghost cell
-		for(int i =0; i<1026; i++)
-		{
-			temp[i].type = mesh[i][SIZEJ+1].type;
-			temp[i].gender = mesh[i][SIZEJ+1].gender;
-			temp[i].age = mesh[i][SIZEJ+1].age;
-		}
-		MPI_Send(&temp, 1026, cellDatatype, 0, TAG, MPI_COMM_WORLD);
-			
-		//clear out ghost cell
-		for(int i = 0;i<1026;i++)
-			mesh[i][SIZEJ+1].type = 0;
-	}
-	
-	
-}
 
 
