@@ -8,5 +8,5 @@
 
 void exchangeBoundryCondition(int rank,object (*mesh)[SIZEJ+2],MPI_Datatype cellDatatype);
 void transferBoundry(int rank,object (*mesh)[SIZEJ+2],MPI_Datatype cellDatatype);
-
+void clearOutGhostcell(int rank,object (*mesh)[SIZEJ+2],MPI_Datatype cellDatatype);
 #endif	/* MPI_Activity_H */

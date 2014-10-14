@@ -65,7 +65,7 @@ void transferBoundry(int rank,object (*mesh)[SIZEJ+2],MPI_Datatype cellDatatype)
 		//put the received ghost cell into row 1
 		for(int i =0; i < 1026; i++)
 		{
-			if(!isOccupied(mesh[i][1])&&temp[i].type != 0) //by doing this, some object will disappear 
+			if(temp[i].type != 0) //by doing this, some object will disappear 
 			{
 				mesh[i][1].type = temp[i].type;
 				mesh[i][1].gender = temp[i].gender;
@@ -84,7 +84,7 @@ void transferBoundry(int rank,object (*mesh)[SIZEJ+2],MPI_Datatype cellDatatype)
 		//put the received ghost cell into row SIZEJ 
 		for(int i =0; i < 1026; i++)
 		{
-			if(!isOccupied(mesh[i][SIZEJ])&&temp[i].type != 0) //by doing this, some object will disappear 
+			if(temp[i].type != 0) //by doing this, some object will disappear 
 			{
 				mesh[i][SIZEJ].type = temp[i].type;
 				mesh[i][SIZEJ].gender = temp[i].gender;
@@ -107,4 +107,14 @@ void transferBoundry(int rank,object (*mesh)[SIZEJ+2],MPI_Datatype cellDatatype)
 	}
 	
 	
+}
+
+void clearOutGhostcell(int rank,object (*mesh)[SIZEJ+2],MPI_Datatype cellDatatype)
+{
+	if(rank == 0)
+		for(int i = 0;i<1026;i++)
+			mesh[i][0].type = 0;
+	if(rank == 1)
+		for(int i = 0;i<1026;i++)
+			mesh[i][SIZEJ+1].type = 0;
 }

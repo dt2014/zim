@@ -83,7 +83,7 @@ int main(int argc, char** argv) {
        	
 		/* transfer the object that moved to the ghost cell */	
 		transferBoundry(rank,MeshB,cellDatatype);
-			
+		clearOutGhostcell(rank,MeshA,cellDatatype);	
   	    swap(&MeshA, &MeshB);
         /* 3. DEATH */
 		 #pragma omp parallel default(none) \
@@ -103,7 +103,7 @@ int main(int argc, char** argv) {
             }
 		}
 		}
-		
+		clearOutGhostcell(rank,MeshA,cellDatatype);
         swap(&MeshA, &MeshB);
         
 		/* exchange the boundry condition between two MPI node */
@@ -132,7 +132,7 @@ int main(int argc, char** argv) {
         
 		/* transfer the object that moved to the ghost cell */	
 		transferBoundry(rank,MeshB,cellDatatype);
-		
+		clearOutGhostcell(rank,MeshA,cellDatatype);
 		swap(&MeshA, &MeshB);
         
 		/* exchange the boundry condition between two MPI node */
@@ -162,7 +162,7 @@ int main(int argc, char** argv) {
        
 	   	/* transfer the object that moved to the ghost cell */	
 		transferBoundry(rank,MeshB,cellDatatype);
-	   
+		clearOutGhostcell(rank,MeshA,cellDatatype);
 		swap(&MeshA, &MeshB);
 		
         /* bracket for the end of parallel region within time loop */
